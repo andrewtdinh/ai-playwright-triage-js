@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>AI Playwright Test Lab — UI</title>
+    <link rel="stylesheet" href="./ui.css" />
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <div class="brand">
+          <div class="logo">AI</div>
+          <div>
+            <div class="title">AI Playwright Test Lab</div>
+            <div class="subtitle">Stories → Tests → Run → Report</div>
+          </div>
+        </div>
+
+        <div class="right">
+          <span class="pill" id="health">Checking server…</span>
+        </div>
+      </header>
+
+      <main class="grid">
+        <section class="card">
+          <h2>Editor</h2>
+          <p class="muted">One editor for stories and tests. Toggle mode and save.</p>
+
+          <label class="label">Upload up to 5 stories</label>
+          <div class="row">
+            <input id="fileInput" class="input file" type="file" multiple accept=".md,.txt" />
+            <button class="btn" id="uploadBtn">Upload files</button>
+          </div>
+
+          <div class="row">
+            <button class="btn small primary" id="editorModeStory" type="button">Story</button>
+            <button class="btn small" id="editorModeTest" type="button">Test</button>
+            <button class="btn ai" id="aiTemplateBtn" type="button">AI Story Assistant</button>
+          </div>
+
+          <label class="label" id="filenameLabel">Filename (optional)</label>
+          <input id="filename" class="input" placeholder="e.g. login, dropdown, add_remove_elements" />
+
+          <label class="label" id="editorLabel">Story text</label>
+          <textarea
+            id="story"
+            class="textarea"
+            placeholder="As a user, I want to ...&#10;&#10;Acceptance:&#10;- Navigate to ...&#10;- Click ...&#10;- Expect ..."
+          ></textarea>
+
+          <div class="row">
+            <button class="btn" id="validateBtn">Validate Story</button>
+            <button class="btn primary" id="saveBtn">Save</button>
+          </div>
+
+          <div id="storyValidation" class="inline-error hidden"></div>
+
+        </section>
+
+        <div class="stack-col">
+          <section class="card">
+            <h2>Saved Stories</h2>
+            <p class="muted">These are the markdown files currently in <code>./stories</code>.</p>
+            <div class="row">
+              <button class="btn" id="refreshBtn">Refresh</button>
+            <button class="btn generate" id="generateAllStoriesBtn">Generate all</button>
+              <button class="btn danger" id="deleteAllStoriesBtn">Delete all</button>
+            </div>
+            <ul id="storyList" class="list"></ul>
+          </section>
+
+          <section class="card">
+            <h2>Generated Tests</h2>
+            <p class="muted">These are the test files currently in <code>./tests</code>.</p>
+            <div class="row">
+              <button class="btn" id="refreshTestsBtn">Refresh</button>
+            <button class="btn generate" id="runAllTestsBtn">Run all</button>
+              <button class="btn danger" id="deleteAllTestsBtn">Delete all</button>
+            </div>
+            <ul id="testList" class="list"></ul>
+          </section>
+        </div>
+
+        <section class="card full-width run-console" id="runConsoleCard">
+          <h2>Run Console</h2>
+          <p class="muted">Live pipeline output with step status and report access.</p>
+          <div class="stepper" id="runStepper">
+            <div class="step" data-step="validate"><span class="dot"></span><span>Validate</span></div>
+            <div class="step" data-step="save"><span class="dot"></span><span>Save</span></div>
+            <div class="step" data-step="generate"><span class="dot"></span><span>Generate</span></div>
+            <div class="step" data-step="run"><span class="dot"></span><span>Run</span></div>
+            <div class="step" data-step="analyze"><span class="dot"></span><span>Analyze</span></div>
+            <div class="step" data-step="report"><span class="dot"></span><span>Report</span></div>
+          </div>
+          <div id="runSummary" class="panel"></div>
+          <div id="runError" class="inline-error hidden"></div>
+          <div id="runLog" class="log"></div>
+          <div class="row">
+            <button class="btn" id="copyStdoutBtn" type="button">Copy stdout</button>
+            <button class="btn" id="copyStderrBtn" type="button">Copy stderr</button>
+            <a class="btn primary hidden" id="openReportBtn" href="/ai-report.html" target="_blank" rel="noreferrer">
+              Open report
+            </a>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <div class="modal hidden" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmTitle">
+      <div class="modal-backdrop" data-close="true"></div>
+      <div class="modal-card">
+        <h3 id="confirmTitle">Confirm action</h3>
+        <p class="muted" id="confirmMessage"></p>
+        <div class="row">
+          <button class="btn" id="confirmCancelBtn" type="button">Cancel</button>
+          <button class="btn danger" id="confirmOkBtn" type="button">Delete</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal hidden" id="aiModal" role="dialog" aria-modal="true" aria-labelledby="aiTitle">
+      <div class="modal-backdrop" data-close="true"></div>
+      <div class="modal-card">
+        <h3 id="aiTitle">AI Story Assistant</h3>
+        <p class="muted">Describe the flow in plain English and we will craft a story.</p>
+
+        <div class="wizard-steps">
+          <span class="wizard-step active" data-step="0">1</span>
+          <span class="wizard-step" data-step="1">2</span>
+          <span class="wizard-step" data-step="2">3</span>
+          <span class="wizard-step" data-step="3">4</span>
+        </div>
+
+        <div class="wizard-panel" data-panel="0">
+          <label class="label" for="aiRequirements">Plain requirements</label>
+          <textarea id="aiRequirements" class="textarea" rows="4" placeholder="What do you want to accomplish?"></textarea>
+        </div>
+
+        <div class="wizard-panel hidden" data-panel="1">
+          <label class="label" for="aiSelectors">Selectors / UI elements (optional)</label>
+          <textarea id="aiSelectors" class="textarea" rows="3" placeholder="Button labels, input names, CSS ids, dropdown names, URLs..."></textarea>
+        </div>
+
+        <div class="wizard-panel hidden" data-panel="2">
+          <label class="label" for="aiPath">Path or steps (optional)</label>
+          <textarea id="aiPath" class="textarea" rows="3" placeholder="Click this, select that, navigate to /login..."></textarea>
+        </div>
+
+        <div class="wizard-panel hidden" data-panel="3">
+          <label class="label" for="aiExpected">Expected outcome</label>
+          <textarea id="aiExpected" class="textarea" rows="3" placeholder="What should happen?"></textarea>
+        </div>
+
+        <div id="aiError" class="inline-error hidden"></div>
+        <div class="row">
+          <button class="btn" id="aiCancelBtn" type="button">Cancel</button>
+          <button class="btn" id="aiBackBtn" type="button">Back</button>
+          <button class="btn" id="aiSkipBtn" type="button">Skip</button>
+          <button class="btn ai" id="aiNextBtn" type="button">Next</button>
+          <button class="btn ai hidden" id="aiGenerateBtn" type="button">
+            <span class="btn-text">Generate story</span>
+            <span class="spinner hidden" id="aiSpinner"></span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="./ui.js"></script>
+  </body>
+</html>

@@ -112,6 +112,45 @@ npm run ai:flow
 ---
 
 ## 👉 Individual Commands (Optional)
+## 🧭 UI Dashboard (Local)
+
+Run the UI:
+
+```bash
+npm run ui
+```
+
+Open `http://localhost:5173`.
+
+### What you can do in the UI
+
+**Run Bar**
+- Run full pipeline or individual steps (Generate / Run Tests / Analyze)
+- Live status chip: Idle / Running / Failed / Passed
+
+**Editor**
+- Single editor for stories and tests (toggle mode)
+- Story validation required before save
+- Upload up to 5 stories at a time
+- AI Story Assistant (wizard) builds a story from requirements + optional selectors/steps + expected outcome
+
+**Saved Stories**
+- Refresh, delete all, edit
+- Per‑story Generate button (creates tests just for that story)
+
+**Generated Tests**
+- Refresh, delete all, edit
+- Per‑test Run button (runs only that test)
+
+**Run Console**
+- Stepper: Validate → Save → Generate → Run → Analyze → Report
+- Live logs, inline errors, copy stdout/stderr
+- “Open report” CTA when available
+
+**Safety / UX**
+- Custom confirm modal for deletes
+- Buttons disabled during runs
+ 
 
 ### Generate tests from your stories
 

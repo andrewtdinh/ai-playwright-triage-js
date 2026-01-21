@@ -8,11 +8,16 @@
     "ai:analyze": "node analyze/analyzeFailures.js",
     "ai:report": "node analyze/analyzeFailures.js --html",
     "ai:flow": "npm run ai:gen && (npm run ai:test || true) && npm run ai:report",
-    "test": "node --test utils/__tests__/**/*.test.js",
-    "test:watch": "node --test --watch utils/__tests__/**/*.test.js"
+    "ui": "node server/server.mjs",
+    "test": "node --test",
+    "test:watch": "node --test --watch"
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",
-    "dotenv": "^16.6.1"
+    "dotenv": "^16.6.1",
+    "jsdom": "^27.4.0"
+  },
+  "dependencies": {
+    "openai": "^6.16.0"
   }
 }

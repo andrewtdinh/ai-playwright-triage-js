@@ -55,13 +55,33 @@ Requirements:
   console.log(`✅ Generated test for ${storyName}: ${outPath}`);
 }
 
+function parseStoryArg() {
+  const args = process.argv.slice(2);
+  const idx = args.findIndex(arg => arg === '--story');
+  if (idx === -1) return null;
+  const name = args[idx + 1];
+  if (!name) return null;
+  return name;
+}
+
 async function main() {
   const storiesDir = path.join(__dirname, 'stories');
+  const storyArg = parseStoryArg();
   const files = fs.readdirSync(storiesDir).filter(f => f.endsWith('.md'));
 
   if (files.length === 0) {
     console.error('No .md story files found in ./stories');
     process.exit(1);
+  }
+
+  if (storyArg) {
+    if (!files.includes(storyArg)) {
+      console.error(`Story not found: ${storyArg}`);
+      process.exit(1);
+    }
+    const fullPath = path.join(storiesDir, storyArg);
+    await generateForStory(fullPath);
+    return;
   }
 
   for (const file of files) {
