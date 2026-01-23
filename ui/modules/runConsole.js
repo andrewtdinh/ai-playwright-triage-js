@@ -9,10 +9,15 @@ export function initRunConsole(elements, api, { loadTests }) {
     runConsoleCard,
     runReportCard,
     runReportFrame,
+    runReportTraditionalFrame,
     runReportFailedList,
     runReportScreenshots,
     runReportScreenshotsTitle,
     runReportNotice,
+    reportTabAi,
+    reportTabTraditional,
+    runReportPanelAi,
+    runReportPanelTraditional,
     copyStdoutBtn,
     copyStderrBtn,
     generateAllStoriesBtn,
@@ -20,10 +25,13 @@ export function initRunConsole(elements, api, { loadTests }) {
   } = elements;
 
   let lastRunOutput = { stdout: "", stderr: "" };
+  let pendingFixSummary = "";
 
   if (copyStdoutBtn) copyStdoutBtn.addEventListener("click", () => copyRunOutput("stdout"));
   if (copyStderrBtn) copyStderrBtn.addEventListener("click", () => copyRunOutput("stderr"));
   if (runReportFailedList) runReportFailedList.addEventListener("click", onFixClick);
+  if (reportTabAi) reportTabAi.addEventListener("click", () => setReportTab("ai"));
+  if (reportTabTraditional) reportTabTraditional.addEventListener("click", () => setReportTab("traditional"));
 
   function setRunStatus(state) {
     if (!runStatus) return;
@@ -172,6 +180,7 @@ export function initRunConsole(elements, api, { loadTests }) {
   function resetReport() {
     if (runReportCard) runReportCard.classList.add("hidden");
     if (runReportFrame) runReportFrame.removeAttribute("src");
+    if (runReportTraditionalFrame) runReportTraditionalFrame.removeAttribute("src");
     if (runReportFailedList) runReportFailedList.innerHTML = "";
     if (runReportScreenshots) {
       runReportScreenshots.innerHTML = "";
@@ -179,6 +188,7 @@ export function initRunConsole(elements, api, { loadTests }) {
     }
     if (runReportScreenshotsTitle) runReportScreenshotsTitle.classList.add("hidden");
     setReportNotice("");
+    setReportTab("ai");
   }
 
   async function showReport() {
@@ -186,6 +196,9 @@ export function initRunConsole(elements, api, { loadTests }) {
     const reportUrl = `/ai-report.html?ts=${Date.now()}`;
     if (runReportFrame) runReportFrame.src = reportUrl;
     if (openReportBtn) openReportBtn.href = reportUrl;
+    if (runReportTraditionalFrame) {
+      runReportTraditionalFrame.src = `/playwright-report/index.html?ts=${Date.now()}`;
+    }
     if (!runReportFailedList && !runReportScreenshots) return;
 
     try {
@@ -197,6 +210,7 @@ export function initRunConsole(elements, api, { loadTests }) {
       if (!hasFailures && runReportCard) {
         runReportCard.classList.add("hidden");
         if (runReportFrame) runReportFrame.removeAttribute("src");
+        if (runReportTraditionalFrame) runReportTraditionalFrame.removeAttribute("src");
       }
     } catch (error) {
       if (runReportFailedList) {
@@ -205,6 +219,20 @@ export function initRunConsole(elements, api, { loadTests }) {
       if (runReportScreenshots) runReportScreenshots.classList.add("hidden");
       if (runReportScreenshotsTitle) runReportScreenshotsTitle.classList.add("hidden");
     }
+  }
+
+  function setReportTab(tab) {
+    const isAi = tab === "ai";
+    if (reportTabAi) {
+      reportTabAi.classList.toggle("active", isAi);
+      reportTabAi.setAttribute("aria-selected", String(isAi));
+    }
+    if (reportTabTraditional) {
+      reportTabTraditional.classList.toggle("active", !isAi);
+      reportTabTraditional.setAttribute("aria-selected", String(!isAi));
+    }
+    if (runReportPanelAi) runReportPanelAi.classList.toggle("active", isAi);
+    if (runReportPanelTraditional) runReportPanelTraditional.classList.toggle("active", !isAi);
   }
 
   function renderReportDetails(html, reportUrl, artifacts = {}) {
@@ -303,6 +331,7 @@ export function initRunConsole(elements, api, { loadTests }) {
         return;
       }
       const updatedFile = response.data?.updatedFile || testFile || "test file";
+      pendingFixSummary = response.data?.summary || "";
       setReportNotice(`Applied AI fix to ${updatedFile}. Re-running tests...`);
       resetReport();
       if (updatedFile) {
@@ -667,6 +696,15 @@ export function initRunConsole(elements, api, { loadTests }) {
 
       runSummary.innerHTML = combineSummaries(summaries);
       runSummary.classList.toggle("hidden", summaries.length === 0);
+      if (pendingFixSummary) {
+        runSummary.innerHTML += `
+          <div style="margin-top:8px;">
+            <strong>AI fix summary:</strong>
+            <div>${escapeHtml(pendingFixSummary)}</div>
+          </div>
+        `;
+        pendingFixSummary = "";
+      }
       setRunLog([runContent.logText, analyzeContent.logText].filter(Boolean).join("\n\n"));
       setRunError(!runOk ? runContent.errorText : (analyzeOk ? "" : analyzeContent.errorText));
       lastRunOutput = { ...combinedOutput };

@@ -175,12 +175,30 @@ function createServer(options = {}) {
     return;
   }
 
+  if (pathname.startsWith("/playwright-report")) {
+    const reportRoot = path.join(projectRoot, "playwright-report");
+    const relPath = pathname.replace("/playwright-report", "") || "/index.html";
+    const filePath = path.join(reportRoot, relPath.replace(/^\//, ""));
+    if (!filePath.startsWith(reportRoot)) return send(res, 403, "Forbidden");
+    if (!fs.existsSync(filePath)) return send(res, 404, "Not found");
+    if (fs.statSync(filePath).isDirectory()) {
+      const indexPath = path.join(filePath, "index.html");
+      if (!fs.existsSync(indexPath)) return send(res, 404, "Not found");
+      return serveStaticFile(indexPath, res);
+    }
+    return serveStaticFile(filePath, res);
+  }
+
     // Only serve from /ui
     const filePath = path.join(uiDir, pathname.replace(/^\//, ""));
     if (!filePath.startsWith(uiDir)) return send(res, 403, "Forbidden");
 
     if (!fs.existsSync(filePath)) return send(res, 404, "Not found");
 
+    return serveStaticFile(filePath, res);
+  }
+
+  function serveStaticFile(filePath, res) {
     const ext = path.extname(filePath).toLowerCase();
     const types = {
       ".html": "text/html; charset=utf-8",
@@ -188,6 +206,7 @@ function createServer(options = {}) {
       ".js": "text/javascript; charset=utf-8",
       ".png": "image/png",
       ".svg": "image/svg+xml",
+      ".json": "application/json; charset=utf-8",
     };
 
     const contentType = types[ext] || "application/octet-stream";
@@ -436,7 +455,24 @@ Expected outcome: ${expected}
       errorContextPaths = [],
     } = JSON.parse(body || "{}");
 
-    const safeTest = safeTestFile(testFile);
+    let safeTest = safeTestFile(testFile);
+    if (!safeTest && testTitle) {
+      const files = fs.readdirSync(testsDir).filter((f) => f.endsWith(".spec.js"));
+      for (const file of files) {
+        const filePath = path.join(testsDir, file);
+        if (!fs.statSync(filePath).isFile()) continue;
+        const contents = fs.readFileSync(filePath, "utf8");
+        const titleRegex = /test\s*\(\s*['"`]([^'"`]+)['"`]/g;
+        let match;
+        while ((match = titleRegex.exec(contents))) {
+          if (match[1] === testTitle) {
+            safeTest = file;
+            break;
+          }
+        }
+        if (safeTest) break;
+      }
+    }
     if (!safeTest) return sendJson(res, 400, { ok: false, error: "Invalid test file." });
 
     const testPath = path.join(testsDir, safeTest);
@@ -510,6 +546,32 @@ Requirements:
       const fixedContent = (response.choices?.[0]?.message?.content || "").trim();
       if (!fixedContent) return sendJson(res, 500, { ok: false, error: "AI returned empty response." });
 
+      const summaryPrompt = `
+Summarize the fix in 1-2 sentences, focusing on what changed and why.
+
+Original test:
+${currentTest.slice(0, 4000)}
+
+Updated test:
+${fixedContent.slice(0, 4000)}
+
+Error context:
+${errorContexts.join("\n\n").slice(0, 2000)}
+`.trim();
+      let summary = "";
+      try {
+        const summaryRes = await aiClient.chat.completions.create({
+          model: "gpt-4.1-mini",
+          messages: [
+            { role: "system", content: "Summarize test fixes concisely." },
+            { role: "user", content: summaryPrompt },
+          ],
+        });
+        summary = (summaryRes.choices?.[0]?.message?.content || "").trim();
+      } catch {
+        summary = "";
+      }
+
       const backupDir = path.join(testsDir, ".ai-backups");
       fs.mkdirSync(backupDir, { recursive: true });
       const backupPath = path.join(backupDir, `${safeTest}.${Date.now()}.bak`);
@@ -520,6 +582,7 @@ Requirements:
         ok: true,
         updatedFile: safeTest,
         preview: fixedContent.slice(0, 2000),
+        summary,
       });
     } catch (error) {
       return sendJson(res, 500, { ok: false, error: "AI fix failed." });

@@ -41,6 +41,11 @@ function buildDom() {
       <div id="runReportScreenshotsTitle" class="hidden"></div>
       <div id="runReportScreenshots" class="hidden"></div>
       <iframe id="runReportFrame"></iframe>
+      <iframe id="runReportTraditionalFrame"></iframe>
+      <button id="reportTabAi"></button>
+      <button id="reportTabTraditional"></button>
+      <div id="runReportPanelAi"></div>
+      <div id="runReportPanelTraditional"></div>
       <button id="validateBtn"></button>
       <button id="saveBtn"></button>
       <button id="uploadBtn"></button>
@@ -162,10 +167,15 @@ function getElements() {
     runConsoleCard: $("runConsoleCard"),
     runReportCard: $("runReportCard"),
     runReportFrame: $("runReportFrame"),
+    runReportTraditionalFrame: $("runReportTraditionalFrame"),
     runReportFailedList: $("runReportFailedList"),
     runReportScreenshots: $("runReportScreenshots"),
     runReportScreenshotsTitle: $("runReportScreenshotsTitle"),
     runReportNotice: $("runReportNotice"),
+    reportTabAi: $("reportTabAi"),
+    reportTabTraditional: $("reportTabTraditional"),
+    runReportPanelAi: $("runReportPanelAi"),
+    runReportPanelTraditional: $("runReportPanelTraditional"),
     copyStdoutBtn: $("copyStdoutBtn"),
     copyStderrBtn: $("copyStderrBtn"),
     confirmModal: $("confirmModal"),
