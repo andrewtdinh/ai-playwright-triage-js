@@ -77,7 +77,15 @@ export function runTestFile(testFile) {
 }
 
 export function runAnalyze() {
-  return requestJson("/api/run/analyze", { method: "POST" });
+  return requestJson("/api/run/report", { method: "POST" });
+}
+
+export function fixTestWithAi(payload) {
+  return requestJson("/api/ai/fix-test", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify(payload || {}),
+  });
 }
 
 export function runPipeline() {

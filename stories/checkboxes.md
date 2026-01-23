@@ -11,4 +11,3 @@ Acceptance criteria:
 - Ensure the second checkbox is unchecked (if it is checked, click it to uncheck)
 - Verify the first checkbox is in the checked state
 - Verify the second checkbox is in the unchecked state
-

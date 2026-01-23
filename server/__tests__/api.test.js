@@ -81,7 +81,7 @@ test("story CRUD + delete all", async () => {
     await fetch(`${baseUrl}/api/stories`, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ filename: "two", content: "As a user\n- step\nAcceptance:" }),
+      body: JSON.stringify({ filename: "two", content: "As a user\n- step two\nAcceptance:" }),
     });
     const deleteAll = await fetch(`${baseUrl}/api/stories`, { method: "DELETE" });
     const deleteAllJson = await deleteAll.json();

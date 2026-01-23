@@ -5,5 +5,6 @@ export default defineConfig({
   reporter: [
     ['list'],                         // nice terminal output
     ['json', { outputFile: 'playwright-report.json' }], // JSON for the AI analyzer
+    ['html', { outputFolder: 'playwright-report', open: 'never' }],
   ],
 });

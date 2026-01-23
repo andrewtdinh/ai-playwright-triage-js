@@ -9,4 +9,3 @@ Acceptance criteria:
 - Verify the dropdown is present
 - Select `Option 2` from the dropdown
 - Verify that `Option 2` is the currently selected value
-

@@ -93,7 +93,7 @@
             <div class="step" data-step="analyze"><span class="dot"></span><span>Analyze</span></div>
             <div class="step" data-step="report"><span class="dot"></span><span>Report</span></div>
           </div>
-          <div id="runSummary" class="panel"></div>
+          <div id="runSummary" class="panel hidden"></div>
           <div id="runError" class="inline-error hidden"></div>
           <div id="runLog" class="log"></div>
           <div class="row">
@@ -102,6 +102,41 @@
             <a class="btn primary hidden" id="openReportBtn" href="/ai-report.html" target="_blank" rel="noreferrer">
               Open report
             </a>
+          </div>
+        </section>
+
+        <section class="card full-width run-report hidden" id="runReportCard">
+          <h2>Report</h2>
+          <p class="muted">AI analysis and report artifacts. Generated after Analyze.</p>
+          <div class="report-tabs" role="tablist" aria-label="Report tabs">
+            <button class="btn small report-tab active" id="reportTabAi" type="button" role="tab" aria-selected="true">
+              AI Analysis
+            </button>
+            <button class="btn small report-tab" id="reportTabTraditional" type="button" role="tab" aria-selected="false">
+              Traditional Report
+            </button>
+          </div>
+          <div id="runReportNotice" class="inline-info hidden"></div>
+          <div id="runReportFailedList" class="report-list"></div>
+          <div id="runReportScreenshotsTitle" class="label hidden">Screenshots</div>
+          <div id="runReportScreenshots" class="report-screenshots hidden"></div>
+          <div class="report-panel active" id="runReportPanelAi" role="tabpanel">
+            <iframe
+              id="runReportFrame"
+              class="report-frame"
+              title="AI report"
+              loading="lazy"
+              referrerpolicy="no-referrer"
+            ></iframe>
+          </div>
+          <div class="report-panel" id="runReportPanelTraditional" role="tabpanel">
+            <iframe
+              id="runReportTraditionalFrame"
+              class="report-frame"
+              title="Traditional report"
+              loading="lazy"
+              referrerpolicy="no-referrer"
+            ></iframe>
           </div>
         </section>
       </main>

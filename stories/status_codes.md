@@ -9,4 +9,3 @@ Acceptance criteria:
 - Click on the `200` link
 - Confirm that the resulting page URL contains `/status_codes/200`
 - Verify the page text contains the sentence `This page returned a 200 status code.`
-

@@ -34,6 +34,19 @@ function safeFileName(input) {
     .slice(0, 80) || "story";
 }
 
+function nextUntitledStoryName(storiesDir) {
+  const files = fs.readdirSync(storiesDir).filter((f) => f.startsWith("untitled_story_") && f.endsWith(".md"));
+  let max = 0;
+  for (const file of files) {
+    const match = file.match(/^untitled_story_(\d+)\.md$/);
+    if (match) {
+      const num = Number(match[1]);
+      if (Number.isFinite(num)) max = Math.max(max, num);
+    }
+  }
+  return `untitled_story_${max + 1}`;
+}
+
 function safeStoryFile(input) {
   const raw = String(input || "").trim();
   if (!raw || raw.includes("/") || raw.includes("\\") || raw.includes("..")) return null;
@@ -46,6 +59,12 @@ function safeTestFile(input) {
   if (!raw || raw.includes("/") || raw.includes("\\") || raw.includes("..")) return null;
   if (!raw.endsWith(".spec.js")) return null;
   return raw;
+}
+
+function safeRelativePath(input) {
+  const raw = String(input || "").trim();
+  if (!raw || raw.includes("\\") || raw.includes("..")) return null;
+  return raw.startsWith("/") ? raw.slice(1) : raw;
 }
 
 function readBody(req) {
@@ -76,6 +95,19 @@ function validateStoryText(text) {
   if (!hasUrl) warnings.push("No Base URL detected (you can still generate tests, but URL helps).");
 
   return { ok: errors.length === 0, errors, warnings };
+}
+
+function isDuplicateStory(storiesDir, content) {
+  const normalized = (content || "").trim();
+  if (!normalized) return false;
+  const files = fs.readdirSync(storiesDir).filter((f) => f.endsWith(".md"));
+  for (const file of files) {
+    const existing = fs.readFileSync(path.join(storiesDir, file), "utf8").trim();
+    if (existing === normalized) {
+      return file;
+    }
+  }
+  return null;
 }
 
 function createServer(options = {}) {
@@ -120,6 +152,28 @@ function createServer(options = {}) {
   function serveStatic(req, res) {
     const url = new URL(req.url, `http://${req.headers.host}`);
     const pathname = url.pathname === "/" ? "/index.html" : url.pathname;
+
+  const rootFiles = {
+    "/ai-report.html": path.join(projectRoot, "ai-report.html"),
+    "/ai-report.css": path.join(projectRoot, "ai-report.css"),
+    "/ai-analysis.json": path.join(projectRoot, "ai-analysis.json"),
+  };
+
+  if (rootFiles[pathname]) {
+    const filePath = rootFiles[pathname];
+    if (!fs.existsSync(filePath)) return send(res, 404, "Not found");
+    const ext = path.extname(filePath).toLowerCase();
+    const types = {
+      ".html": "text/html; charset=utf-8",
+      ".css": "text/css; charset=utf-8",
+      ".json": "application/json; charset=utf-8",
+    };
+    const contentType = types[ext] || "application/octet-stream";
+    const data = fs.readFileSync(filePath);
+    res.writeHead(200, { "content-type": contentType });
+    res.end(data);
+    return;
+  }
 
     // Only serve from /ui
     const filePath = path.join(uiDir, pathname.replace(/^\//, ""));
@@ -174,7 +228,11 @@ function createServer(options = {}) {
   if (url.pathname === "/api/tests" && req.method === "GET") {
     const files = fs
       .readdirSync(testsDir)
-      .filter((f) => f !== ".gitkeep" && f !== ".DS_Store")
+      .filter((f) => f.endsWith(".spec.js"))
+      .filter((f) => {
+        const filePath = path.join(testsDir, f);
+        return fs.existsSync(filePath) && fs.statSync(filePath).isFile();
+      })
       .sort();
     return sendJson(res, 200, { files });
   }
@@ -182,7 +240,11 @@ function createServer(options = {}) {
   if (url.pathname === "/api/tests" && req.method === "DELETE") {
     const files = fs
       .readdirSync(testsDir)
-      .filter((f) => f !== ".gitkeep" && f !== ".DS_Store");
+      .filter((f) => f.endsWith(".spec.js"))
+      .filter((f) => {
+        const filePath = path.join(testsDir, f);
+        return fs.existsSync(filePath) && fs.statSync(filePath).isFile();
+      });
 
     for (const f of files) {
       const filePath = path.join(testsDir, f);
@@ -272,7 +334,16 @@ function createServer(options = {}) {
     // Block save only if truly empty/invalid
     if (!v.ok) return sendJson(res, 400, v);
 
-    const base = safeFileName(filename || "story");
+    const duplicate = isDuplicateStory(storiesDir, cleaned);
+    if (duplicate) {
+      return sendJson(res, 409, {
+        ok: false,
+        error: `Duplicate story content matches ${duplicate}.`,
+      });
+    }
+
+    const provided = String(filename || "").trim();
+    const base = provided ? safeFileName(provided) : nextUntitledStoryName(storiesDir);
     const outPath = path.join(storiesDir, `${base}.md`);
     fs.writeFileSync(outPath, cleaned, "utf8");
 
@@ -296,7 +367,12 @@ function createServer(options = {}) {
   }
 
   if (url.pathname === "/api/run/analyze" && req.method === "POST") {
-    return runCommand(res, "npm run ai:analyze");
+    const wantsHtml = url.searchParams.get("html") !== "0" && url.searchParams.get("report") !== "0";
+    return runCommand(res, wantsHtml ? "npm run ai:report" : "npm run ai:analyze");
+  }
+
+  if (url.pathname === "/api/run/report" && req.method === "POST") {
+    return runCommand(res, "npm run ai:report");
   }
 
   if (url.pathname === "/api/run/pipeline" && req.method === "POST") {
@@ -346,6 +422,107 @@ Expected outcome: ${expected}
       return sendJson(res, 200, { ok: true, story: storyText });
     } catch (error) {
       return sendJson(res, 500, { ok: false, error: "AI generation failed." });
+    }
+  }
+
+  if (url.pathname === "/api/ai/fix-test" && req.method === "POST") {
+    if (!aiClient) return sendJson(res, 500, { ok: false, error: "OpenAI API key not configured." });
+    const body = await readBody(req);
+    const {
+      testTitle = "",
+      testFile = "",
+      stdout = "",
+      stderr = "",
+      errorContextPaths = [],
+    } = JSON.parse(body || "{}");
+
+    const safeTest = safeTestFile(testFile);
+    if (!safeTest) return sendJson(res, 400, { ok: false, error: "Invalid test file." });
+
+    const testPath = path.join(testsDir, safeTest);
+    if (!testPath.startsWith(testsDir)) return sendJson(res, 403, { ok: false, error: "Forbidden." });
+    if (!fs.existsSync(testPath)) return sendJson(res, 404, { ok: false, error: "Test file not found." });
+
+    const currentTest = fs.readFileSync(testPath, "utf8");
+    const testResultsDir = path.join(projectRoot, "test-results");
+    const errorContexts = Array.isArray(errorContextPaths)
+      ? errorContextPaths
+          .map((p) => safeRelativePath(p))
+          .filter(Boolean)
+          .map((p) => path.join(projectRoot, p))
+          .filter((p) => p.startsWith(testResultsDir) && fs.existsSync(p))
+          .map((p) => fs.readFileSync(p, "utf8"))
+      : [];
+
+    let storyContext = "";
+    try {
+      const rawTitle = String(testTitle || "");
+      const slug = rawTitle
+        .split(" - ")[0]
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "");
+      const storyPath = path.join(projectRoot, "stories", `${slug}.md`);
+      if (slug && fs.existsSync(storyPath)) {
+        storyContext = fs.readFileSync(storyPath, "utf8");
+      }
+    } catch {
+      storyContext = "";
+    }
+
+    const prompt = `
+You are a senior QA engineer specializing in Playwright.
+You will receive a failing test and logs. Return the FULL corrected test file contents only.
+Do not include markdown fences or commentary.
+
+Test title: ${testTitle}
+Test file: ${safeTest}
+
+Current test file:
+${currentTest}
+
+Run stdout:
+${stdout}
+
+Run stderr:
+${stderr}
+
+Error context:
+${errorContexts.join("\n\n")}
+
+Related story (if any):
+${storyContext}
+
+Requirements:
+- Preserve the file structure and imports if possible.
+- Fix the test based on the real behavior of https://the-internet.herokuapp.com when applicable.
+- Return ONLY the corrected file contents.
+`.trim();
+
+    try {
+      const response = await aiClient.chat.completions.create({
+        model: "gpt-4.1",
+        messages: [
+          { role: "system", content: "You fix Playwright tests. Return full file contents only." },
+          { role: "user", content: prompt },
+        ],
+      });
+      const fixedContent = (response.choices?.[0]?.message?.content || "").trim();
+      if (!fixedContent) return sendJson(res, 500, { ok: false, error: "AI returned empty response." });
+
+      const backupDir = path.join(testsDir, ".ai-backups");
+      fs.mkdirSync(backupDir, { recursive: true });
+      const backupPath = path.join(backupDir, `${safeTest}.${Date.now()}.bak`);
+      fs.writeFileSync(backupPath, currentTest, "utf8");
+      fs.writeFileSync(testPath, fixedContent + "\n", "utf8");
+
+      return sendJson(res, 200, {
+        ok: true,
+        updatedFile: safeTest,
+        preview: fixedContent.slice(0, 2000),
+      });
+    } catch (error) {
+      return sendJson(res, 500, { ok: false, error: "AI fix failed." });
     }
   }
 

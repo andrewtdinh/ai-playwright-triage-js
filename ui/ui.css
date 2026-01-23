@@ -248,6 +248,98 @@ h2 { margin: 0 0 0.5rem; font-size: 1.05rem; }
   font-size: 0.85rem;
 }
 
+.run-report {
+  border-top: 1px solid rgba(148, 163, 184, 0.2);
+}
+.report-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  margin-top: 0.75rem;
+}
+.report-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.8rem;
+  padding: 0.7rem 0.8rem;
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(2, 6, 23, 0.4);
+}
+.report-title {
+  font-weight: 600;
+  color: #e2e8f0;
+}
+.report-sub {
+  margin-top: 0.2rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+.report-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  border: 1px solid transparent;
+}
+.report-status.failed {
+  color: #fecaca;
+  border-color: rgba(248, 113, 113, 0.5);
+  background: rgba(248, 113, 113, 0.15);
+}
+.report-status.passed {
+  color: #bbf7d0;
+  border-color: rgba(34, 197, 94, 0.45);
+  background: rgba(34, 197, 94, 0.16);
+}
+.report-file {
+  margin-left: 0.4rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  color: #cbd5f5;
+  background: rgba(15, 23, 42, 0.6);
+}
+.report-actions {
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+.btn.loading {
+  opacity: 0.7;
+  cursor: progress;
+}
+.report-screenshots {
+  margin-top: 1rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 0.7rem;
+}
+.report-screenshot {
+  border-radius: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.25);
+  background: rgba(2, 6, 23, 0.45);
+  overflow: hidden;
+}
+.report-screenshot img {
+  display: block;
+  width: 100%;
+  height: 140px;
+  object-fit: cover;
+}
+.report-frame {
+  width: 100%;
+  min-height: 520px;
+  margin-top: 1rem;
+  border-radius: 14px;
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  background: rgba(2, 6, 23, 0.65);
+}
+
 .list { margin: 0.75rem 0 0; padding-left: 0; list-style: none; }
 .list li { margin: 0.35rem 0; color: #cbd5e1; }
 .story-item {

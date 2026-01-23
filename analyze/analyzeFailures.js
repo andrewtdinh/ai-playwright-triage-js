@@ -463,12 +463,6 @@ async function main() {
   const report = JSON.parse(raw);
 
   const failedTests = collectFailedTests(report.suites || []);
-
-  if (failedTests.length === 0) {
-    console.log('No failed tests found in report.');
-    return;
-  }
-
   const analyses = [];
 
   for (const test of failedTests) {
@@ -561,13 +555,17 @@ Include:
   fs.writeFileSync(jsonUrl, JSON.stringify(analyses, null, 2), 'utf8');
   console.log(`\n💾 Saved AI analysis to: ${jsonUrl.pathname}`);
 
+  if (failedTests.length === 0) {
+    console.log('No failed tests found in report.');
+  }
+
   if (withHtml) {
     // Write CSS file (refactored out)
     const cssUrl = new URL('../ai-report.css', import.meta.url);
     fs.writeFileSync(cssUrl, REPORT_CSS, 'utf8');
     console.log(`🎨 Wrote CSS to: ${cssUrl.pathname}`);
 
-    // Write HTML file
+    // Write HTML file (even if there are no failed tests)
     const html = buildHtml(analyses);
     const htmlUrl = new URL('../ai-report.html', import.meta.url);
     fs.writeFileSync(htmlUrl, html, 'utf8');

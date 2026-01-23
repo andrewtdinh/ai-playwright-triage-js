@@ -10,4 +10,3 @@ Acceptance criteria (intentionally incorrect to force a failing test):
 - Expect there to be exactly **three** `Delete` buttons visible
 - Click one of the `Delete` buttons
 - Expect exactly **two** `Delete` buttons to remain visible
-
