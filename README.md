@@ -9,6 +9,8 @@ An end-to-end **AI-powered test automation pipeline** that:
 ✔️ **Analyzes failed tests using AI**, producing explanations, root causes, fix suggestions, and flakiness tips
 
 ✔️ **Builds a beautifully styled HTML dashboard** of all AI results
+✔️ **Embedded UI reports** (AI analysis + Playwright HTML report with screenshots)
+✔️ **Fix with AI** to auto-apply test repairs and re-run
 
 ✔️ **One-command workflow** using `npm run ai:flow`
 
@@ -67,6 +69,7 @@ ai_project/
 │
 ├── tests/
 │   └── login.spec.js          # Auto-generated Playwright test
+│   └── .ai-backups/           # AI fix backups (hidden in UI)
 │
 ├── analyze/
 │   ├── analyzeFailures.js      # AI engine (JSON + HTML dashboard)
@@ -75,9 +78,10 @@ ai_project/
 ├── ai-analysis.json            # AI output (JSON)
 ├── ai-report.html              # Human-friendly HTML dashboard
 ├── ai-report.css               # Dashboard styling
+├── playwright-report/          # Playwright HTML report (screenshots)
 │
 ├── generateTest.js             # Converts stories → Playwright tests
-├── playwright.config.mjs       # Config + JSON reporter
+├── playwright.config.mjs       # Config + JSON + HTML reporters
 ├── package.json                # NPM scripts for full automation
 └── README.md                   # (this file)
 ```
@@ -146,10 +150,38 @@ Open `http://localhost:5173`.
 - Stepper: Validate → Save → Generate → Run → Analyze → Report
 - Live logs, inline errors, copy stdout/stderr
 - “Open report” CTA when available
+- Report tabs:
+  - AI Analysis (embedded `ai-report.html`)
+  - Traditional Report (embedded Playwright HTML report)
+- Fix with AI button for failed tests:
+  - Auto-applies changes, re-runs the test, and shows a fix summary
 
 **Safety / UX**
 - Custom confirm modal for deletes
 - Buttons disabled during runs
+
+### AI Story Assistant
+
+The UI includes an AI Story Assistant wizard that helps craft stories in a structured format:
+
+- Collects requirements, selectors/UI elements, path/steps, and expected outcome
+- Generates a story that fits the editor format
+- Inserts the story directly into the editor
+
+Use it when you want consistent story structure or faster authoring.
+
+### Fix with AI
+
+When a test fails, the Report section lists failed tests with a **Fix with AI** button.
+
+What it does:
+
+- Sends full context to the server (test file, stdout/stderr, error context, related story)
+- Auto-applies the updated test file
+- Creates a backup in `tests/.ai-backups/`
+- Re-runs the fixed test and shows a short fix summary in the Run Console
+
+Requires `OPENAI_API_KEY` to be set on the server.
  
 
 ### Generate tests from your stories
@@ -169,6 +201,7 @@ npm run ai:test
 ```
 
 Saves `playwright-report.json`.
+Also writes the Playwright HTML report to `playwright-report/`.
 
 ---
 
@@ -189,6 +222,7 @@ npm run ai:report
 ```
 
 Auto-opens `ai-report.html` in your browser.
+Also writes `ai-report.css` and updates the embedded UI report.
 
 ---
 
