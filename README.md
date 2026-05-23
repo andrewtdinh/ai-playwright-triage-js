@@ -53,7 +53,7 @@ Into:
 
 * **Node.js + ES Modules**
 * **Playwright** (`@playwright/test`)
-* **OpenAI API (GPT-4.1)**
+* **Claude Code CLI** (no API keys needed — uses your Claude Code subscription)
 * **Custom HTML reporting with external CSS**
 * **Dark-mode dashboard UI**
 
@@ -91,12 +91,13 @@ ai_project/
 ## ⚙️ Installation
 
 ```bash
-git clone https://github.com/jtur671/playwright-ai-triage.git
-cd playwright-ai-triage
+git clone https://github.com/andrewtdinh/ai-playwright-triage-js.git
+cd ai-playwright-triage-js
 npm install
 npx playwright install
-export OPENAI_API_KEY="your-key"
 ```
+
+**Note:** No API keys needed! The project uses the **Claude Code CLI** (`claude` command) which is included with Claude Code. If you haven't installed Claude Code yet, [get it here](https://claude.ai/code).
 
 ---
 
@@ -176,12 +177,12 @@ When a test fails, the Report section lists failed tests with a **Fix with AI** 
 
 What it does:
 
-- Sends full context to the server (test file, stdout/stderr, error context, related story)
+- Sends full context to Claude via the CLI (test file, stdout/stderr, error context, related story)
 - Auto-applies the updated test file
 - Creates a backup in `tests/.ai-backups/`
 - Re-runs the fixed test and shows a short fix summary in the Run Console
 
-Requires `OPENAI_API_KEY` to be set on the server.
+No API keys required — uses Claude Code CLI.
  
 
 ### Generate tests from your stories
@@ -228,14 +229,14 @@ Also writes `ai-report.css` and updates the embedded UI report.
 
 ## 🤖 How AI Analysis Works
 
-After Playwright executes the tests, all failure metadata is passed to GPT-4.1:
+After Playwright executes the tests, all failure metadata is passed to Claude via the CLI:
 
 * Error message
 * Stack trace
 * Test title + project name
 * stdout/stderr logs
 
-AI returns structured HTML with:
+Claude returns structured HTML with:
 
 ### **1. Plain-English Explanation**
 
@@ -294,23 +295,14 @@ Ways to reduce intermittent failures.
 
 ## 📦 Environment Variables
 
-Set your OpenAI key using one of these methods:
+**No API keys required!** The project uses the **Claude Code CLI**, which authenticates with your Claude Code subscription.
 
-**Option 1: Export (recommended for quick setup)**
+If you want to specify a particular Claude model (optional), use:
 ```bash
-export OPENAI_API_KEY="your-key"
+claude --model claude-opus-4-7
 ```
 
-**Option 2: .env file (recommended for persistence)**
-```bash
-# Copy the example file
-cp .env.example .env
-
-# Edit .env and add your key
-OPENAI_API_KEY=your-key
-```
-
-Both methods work! If you use `export`, it takes precedence over the `.env` file.
+This sets the model for all subsequent `claude -p` commands during the pipeline run.
 
 ---
 
