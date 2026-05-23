@@ -1,11 +1,9 @@
 // generateTest.js
 import fs from 'fs';
 import path from 'path';
-import OpenAI from 'openai';
 import { fileURLToPath } from 'url';
+import { claudePrompt } from './utils/claudeClient.js';
 import 'dotenv/config';
-
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -15,10 +13,7 @@ async function generateForStory(storyPath) {
   const storyName = path.basename(storyPath, '.md'); // e.g. login, checkboxes
   const outPath = path.join(__dirname, 'tests', `${storyName}.spec.js`);
 
-  const prompt = `
-You are a Playwright automation engineer.
-
-Generate a SINGLE Playwright test in JavaScript based on this user story:
+  const prompt = `Generate a SINGLE Playwright test in JavaScript based on this user story:
 
 ${story}
 
@@ -27,19 +22,14 @@ Requirements:
 - Use the Base URL from the story. If present, prepend it to any relative paths like /login.
 - Use page.goto, page.locator, page.fill, page.click, expect(...)
 - Use data from the Acceptance criteria.
-- Do NOT include markdown, backticks, or explanations.
-- Output ONLY raw JavaScript test code that can go directly into a .spec.js file.
+- Output ONLY the JavaScript code. No explanations, no markdown, no comments.
+- Start directly with "import { test, expect }".
   `;
 
-  const response = await client.chat.completions.create({
-    model: 'gpt-4.1-mini',
-    messages: [
-      { role: 'system', content: 'You write Playwright tests in pure JavaScript, no markdown.' },
-      { role: 'user', content: prompt },
-    ],
-  });
-
-  let code = (response.choices[0].message.content || '').trim();
+  let code = await claudePrompt(
+    'You are a Playwright test code generator. Output ONLY the complete JavaScript code for a Playwright test. Do not include any explanations, comments about the code, or markdown formatting. Start directly with "import { test, expect }".',
+    prompt
+  );
 
   // Safety: strip stray markdown fences if they sneak in
   code = code

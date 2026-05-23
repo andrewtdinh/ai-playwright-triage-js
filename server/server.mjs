@@ -4,7 +4,7 @@ import fs from "node:fs";
 import path from "node:path";
 import { exec } from "node:child_process";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import OpenAI from "openai";
+import { claudePrompt } from "../utils/claudeClient.js";
 import "dotenv/config";
 
 const __filename = fileURLToPath(import.meta.url);
@@ -117,7 +117,7 @@ function createServer(options = {}) {
   const testsDir = options.testsDir || path.join(projectRoot, "tests");
   const mockRuns = options.mockRuns === true;
   let isRunning = false;
-  const aiClient = options.aiClient || (process.env.OPENAI_API_KEY ? new OpenAI({ apiKey: process.env.OPENAI_API_KEY }) : null);
+  const claudeClient = options.claudeClient || claudePrompt;
 
   if (!fs.existsSync(storiesDir)) fs.mkdirSync(storiesDir, { recursive: true });
 
@@ -399,7 +399,6 @@ function createServer(options = {}) {
   }
 
   if (url.pathname === "/api/ai/story" && req.method === "POST") {
-    if (!aiClient) return sendJson(res, 500, { ok: false, error: "OpenAI API key not configured." });
     const body = await readBody(req);
     const { requirements, selectors, path: userPath, expected } = JSON.parse(body || "{}");
 
@@ -430,14 +429,10 @@ Expected outcome: ${expected}
 `.trim();
 
     try {
-      const response = await aiClient.chat.completions.create({
-        model: "gpt-4.1-mini",
-        messages: [
-          { role: "system", content: "You write crisp user stories for QA. No markdown." },
-          { role: "user", content: prompt },
-        ],
-      });
-      const storyText = (response.choices?.[0]?.message?.content || "").trim();
+      const storyText = await claudeClient(
+        "You write crisp user stories for QA. No markdown.",
+        prompt
+      );
       return sendJson(res, 200, { ok: true, story: storyText });
     } catch (error) {
       return sendJson(res, 500, { ok: false, error: "AI generation failed." });
@@ -445,7 +440,6 @@ Expected outcome: ${expected}
   }
 
   if (url.pathname === "/api/ai/fix-test" && req.method === "POST") {
-    if (!aiClient) return sendJson(res, 500, { ok: false, error: "OpenAI API key not configured." });
     const body = await readBody(req);
     const {
       testTitle = "",
@@ -536,14 +530,10 @@ Requirements:
 `.trim();
 
     try {
-      const response = await aiClient.chat.completions.create({
-        model: "gpt-4.1",
-        messages: [
-          { role: "system", content: "You fix Playwright tests. Return full file contents only." },
-          { role: "user", content: prompt },
-        ],
-      });
-      const fixedContent = (response.choices?.[0]?.message?.content || "").trim();
+      const fixedContent = await claudeClient(
+        "You fix Playwright tests. Return full file contents only.",
+        prompt
+      );
       if (!fixedContent) return sendJson(res, 500, { ok: false, error: "AI returned empty response." });
 
       const summaryPrompt = `
@@ -560,14 +550,10 @@ ${errorContexts.join("\n\n").slice(0, 2000)}
 `.trim();
       let summary = "";
       try {
-        const summaryRes = await aiClient.chat.completions.create({
-          model: "gpt-4.1-mini",
-          messages: [
-            { role: "system", content: "Summarize test fixes concisely." },
-            { role: "user", content: summaryPrompt },
-          ],
-        });
-        summary = (summaryRes.choices?.[0]?.message?.content || "").trim();
+        summary = await claudeClient(
+          "Summarize test fixes concisely.",
+          summaryPrompt
+        );
       } catch {
         summary = "";
       }

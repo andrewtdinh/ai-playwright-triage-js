@@ -3,10 +3,8 @@ import fs from 'fs';
 import path from 'path';
 import { exec } from 'child_process';
 import { fileURLToPath } from 'url';
-import OpenAI from 'openai';
+import { claudePrompt } from '../utils/claudeClient.js';
 import 'dotenv/config';
-
-const client = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -533,12 +531,7 @@ Include:
 4. A heading "Flakiness Mitigation" with 1–2 ideas to make this test less flaky.
 `;
 
-    const res = await client.responses.create({
-      model: 'gpt-4.1',
-      input: prompt,
-    });
-
-    const analysisHtml = (res.output_text || '').trim();
+    const analysisHtml = await claudePrompt(null, prompt);
 
     analyses.push({
       title: test.title,
