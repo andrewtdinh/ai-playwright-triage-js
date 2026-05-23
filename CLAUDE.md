@@ -23,15 +23,16 @@ npm test
 npm run test:watch
 ```
 
-**Environment:** `OPENAI_API_KEY` must be set (export or `.env` file) for `ai:gen`, `ai:analyze`, `ai:report`, and the UI's AI features.
+**Environment:** No API keys required. The pipeline uses Claude CLI (`claude` command) via subprocess. Ensure Claude Code CLI is installed and authenticated.
 
 ## Architecture
 
 The project is an AI-powered test automation pipeline built with Node.js ESM (`"type": "module"`). There are three distinct runtime layers:
 
 ### 1. Pipeline scripts (CLI)
-- [generateTest.js](generateTest.js) — reads `.md` files from `stories/`, sends each to GPT-4.1-mini, writes `tests/<name>.spec.js`. Accepts `--story <filename>` to target a single story.
-- [analyze/analyzeFailures.js](analyze/analyzeFailures.js) — reads `playwright-report.json` (Playwright's JSON reporter output), sends each failed test to GPT-4.1 via `client.responses.create`, writes `ai-analysis.json`. With `--html` flag also writes `ai-report.css` + `ai-report.html` and opens the browser.
+- [generateTest.js](generateTest.js) — reads `.md` files from `stories/`, sends each to Claude via `claudePrompt()`, writes `tests/<name>.spec.js`. Accepts `--story <filename>` to target a single story.
+- [analyze/analyzeFailures.js](analyze/analyzeFailures.js) — reads `playwright-report.json` (Playwright's JSON reporter output), sends each failed test to Claude via `claudePrompt()`, writes `ai-analysis.json`. With `--html` flag also writes `ai-report.css` + `ai-report.html` and opens the browser.
+- [utils/claudeClient.js](utils/claudeClient.js) — wrapper around `claude -p` CLI command for submitting prompts to Claude. Handles short prompts inline and long prompts via temp files to avoid shell limits.
 
 ### 2. Local UI server
 - [server/server.mjs](server/server.mjs) — vanilla Node `http.createServer`, no framework. Serves static files from `ui/` and exposes a REST API at `/api/*`. The server is exported as `createServer(options)` for testability; `mockRuns: true` prevents subprocess execution in tests.
